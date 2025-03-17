@@ -3,6 +3,7 @@ from pyuvm import *
 import random
 import cocotb
 import pyuvm
+import sympy
 # All testbenches use tinyalu_utils, so store it in a central
 # place and add its path to the sys path so we can import it
 import sys
@@ -55,15 +56,40 @@ class MaxSeq(uvm_sequence):
             await self.finish_item(cmd_tr)
 
 
+
+
+class PrimeSeq(uvm_sequence):
+    def generate_prime_number(self):
+        return random.choice(list(sympy.primerange(1,255)))
+
+
+    async def body(self):
+        for op in list(Ops):
+            prime_A= self.generate_prime_numbers()
+            prime_B= self.generate_prime_numbers()
+            cmd_tr = AluSeqItem("cmd_tr", prime_A, prime_B, op)
+            await self.start_item(cmd_tr)
+            await self.finish_item(cmd_tr)
+
+
 class TestAllSeq(uvm_sequence):
 
     async def body(self):
         seqr = ConfigDB().get(None, "", "SEQR")
         random = RandomSeq("random")
         max = MaxSeq("max")
+        primeseq = PrimeSeq("primeseq")
         await random.start(seqr)
         await max.start(seqr)
+        await primeseq.start(seqr)
 
+
+class TestPrimeSeq(uvm_sequence):
+
+    async def body(self):
+        seqr=ConfigDB().get(None, "", "SEQR")
+        primeseq = PrimeSeq("primeseq")
+        await primeseq.start(seqr)
 
 class TestAllForkSeq(uvm_sequence):
 
@@ -71,9 +97,11 @@ class TestAllForkSeq(uvm_sequence):
         seqr = ConfigDB().get(None, "", "SEQR")
         random = RandomSeq("random")
         max = MaxSeq("max")
+        primeseq = PrimeSeq("primeseq")
         random_task = cocotb.start_soon(random.start(seqr))
         max_task = cocotb.start_soon(max.start(seqr))
-        await Combine(random_task, max_task)
+        primeseq_task = cocotb.start_soon(primeseq.start(seqr))
+        await Combine(random_task, max_task, primeseq_task)
 
 # Sequence library example
 
@@ -280,6 +308,14 @@ class ParallelTest(AluTest):
         uvm_factory().set_type_override_by_type(TestAllSeq, TestAllForkSeq)
         super().build_phase()
 
+
+@pyuvm.test()
+class PrimeSeqTest(AluTest):
+    """ Specific test for PrimeSeq """
+    def build_phase(self):
+        ConfigDB().set(None, "*", "DISABLE_COVERAGE_ERRORS", True)
+        uvm_factory().set_type_override_by_type(TestAllSeq, TestPrimeSeq)
+        super().build_phase()
 
 @pyuvm.test()
 class FibonacciTest(AluTest):
