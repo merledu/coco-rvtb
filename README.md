@@ -1,6 +1,6 @@
 # COCO-RVTB
 
-![Diagram](docs/nrv_coco_rvtb.png)
+![Diagram](docs/coco_rvtb.png)
 
 ## Project Summary:
 This project aims to provide a generic testbench that allows easy integration with design for functional verification. The testbench uses RVFI interface to gather data packets from the DUT, that will then be compared against Spike packet.
